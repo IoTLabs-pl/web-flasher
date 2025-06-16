@@ -17,14 +17,16 @@
         })
           .then((response) => response.json())
           .then((data) =>
-            data
-              .map((element) => ({
-                manifest: element.assets.find((a) =>
-                  a.name.includes("manifest")
-                )?.browser_download_url,
-                name: element.name || element.tag_name,
-              }))
-              .filter((v) => v.manifest && v.name)
+            data.flatMap((release) =>
+              release.assets
+                .filter((asset) => asset.name.includes("manifest"))
+                .map((asset) => ({
+                  manifest:
+                    "https://iotlabs-github-cors-proxy.deno.dev/" +
+                    asset.browser_download_url,
+                  name: release.name || release.tag_name,
+                }))
+            )
           )
           .then((versions) => {
             const versionSelect = document.getElementById("version-select");
@@ -35,7 +37,7 @@
 
             versions.forEach((v) => {
               const option = document.createElement("option");
-              option.value = 'https://iotlabs-github-cors-proxy.deno.dev/' + v.manifest;
+              option.value = v.manifest;
               option.textContent = v.name;
               versionSelect.appendChild(option);
             });

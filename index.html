@@ -7,67 +7,64 @@
 
     <script>
       function get_versions(device) {
-        return new Promise((resolve, reject) => {
-          const repo_name = device.replace(" ", "-");
+        const repo_name = device.replace(" ", "-");
 
-          fetch(
-            `https://api.github.com/repos/IoTLabs-pl/${repo_name}/releases`,
-            {
-              headers: {
-                Accept: "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-              },
-            }
+        fetch(`https://api.github.com/repos/IoTLabs-pl/${repo_name}/releases`, {
+          headers: {
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) =>
+            data
+              .map((element) => ({
+                manifest: element.assets.find((a) =>
+                  a.name.includes("manifest")
+                )?.browser_download_url,
+                name: element.name || element.tag_name,
+              }))
+              .filter((v) => v.manifest && v.name)
           )
-            .then((response) => response.json())
-            .then((data) => {
-              resolve(
-                data.map((element) => ({
-                  manifest: element.assets.find((a) =>
-                    a.name.includes("manifest")
-                  )?.browser_download_url,
-                  name: element.name || element.tag_name,
-                }))
-              );
-            })
-            .catch((error) => {
-              console.error("Error fetching versions:", error);
-              reject(error);
-            });
-        });
-      }
-
-      function populate_versions(device) {
-        get_versions(device)
           .then((versions) => {
             const versionSelect = document.getElementById("version-select");
-            versionSelect.innerHTML = "";
-            versions.forEach((version) => {
-              if (!version.manifest || !version.name) return; // Skip if no manifest URL
+
+            while (versionSelect.firstChild) {
+              versionSelect.firstChild.remove();
+            }
+
+            versions.forEach((v) => {
               const option = document.createElement("option");
-              option.value = version.manifest;
-              option.textContent = version.name;
+              option.value = 'https://iotlabs-github-cors-proxy.deno.dev/' + v.manifest;
+              option.textContent = v.name;
               versionSelect.appendChild(option);
             });
+
+            set_manifest(versions[0]?.manifest);
           })
+          .catch((error) => {
+            console.error("Error fetching versions:", error);
+            reject(error);
+          });
       }
 
       function set_manifest(href) {
         const installButton = document.querySelector("esp-web-install-button");
-        installButton.manifest = href;
+        if (href) installButton.setAttribute("manifest", href);
+        else installButton.removeAttribute("manifest");
       }
 
       window.onload = function () {
         const deviceSelect = document.getElementById("device-select");
         deviceSelect.addEventListener("change", function () {
-          populate_versions(this.value);
+          get_versions(this.value);
         });
         const versionSelect = document.getElementById("version-select");
         versionSelect.addEventListener("change", function () {
           set_manifest(this.value);
         });
-        
-        populate_versions(deviceSelect.value);
+
+        get_versions(deviceSelect.value);
       };
     </script>
     <style>

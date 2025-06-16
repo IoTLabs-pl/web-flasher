@@ -1,0 +1,111 @@
+<html>
+  <head>
+    <script
+      type="module"
+      src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+    ></script>
+
+    <script>
+      function get_versions(device) {
+        const repo_name = device.replace(" ", "-");
+
+        fetch(`https://api.github.com/repos/IoTLabs-pl/${repo_name}/releases`, {
+          headers: {
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            const versionSelect = document.getElementById("version-select");
+            versionSelect.innerHTML = "";
+            data.forEach((element) => {
+              const option = document.createElement("option");
+              option.value =
+                element.assets.find((asset) => asset.name.includes("manifest"))
+                  .browser_download_url ||
+                element.assets[0].browser_download_url;
+              option.textContent = element.name || element.tag_name;
+              versionSelect.appendChild(option);
+            });
+          })
+          .catch((error) => console.error("Error fetching versions:", error));
+      }
+
+      function set_manifest(href) {
+        const installButton = document.querySelector("esp-web-install-button");
+        installButton.manifest = href;
+      }
+
+      window.onload = function () {
+        document
+          .getElementById("device-select")
+          .dispatchEvent(new Event("change"));
+      };
+    </script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Jura:wght@300..700&display=swap");
+
+      :root {
+        --esp-tools-button-color: #2b4c5a;
+      }
+      esp-web-install-button::part(activate) {
+        font-family: "Jura", sans-serif;
+      }
+      img#logo {
+        max-width: 300px;
+      }
+      div#content {
+        flex-grow: 1;
+        font-family: "Jura", sans-serif;
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        align-self: center;
+        align-items: center;
+      }
+      div#config > label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 15px;
+      }
+      div#config > label:not(:last-child) {
+        margin-bottom: 0;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <img
+      id="logo"
+      src="https://iotlabs.pl/wp-content/uploads/2025/05/bitmap.png"
+      alt="Logo"
+    />
+    <div id="content">
+      <div id="config">
+        <label>
+          <div>Device</div>
+          <select id="device-select" onchange="get_versions(this.value)">
+            <option>wM-Bus Gateway</option>
+          </select>
+        </label>
+        <label>
+          <div>Version</div>
+          <select
+            id="version-select"
+            onchange="set_manifest(this.value)"
+          ></select>
+        </label>
+      </div>
+      <esp-web-install-button
+        manifest="https://firmware.esphome.io/esp-web-tools/manifest.json"
+      >
+      </esp-web-install-button>
+    </div>
+  </body>
+</html>
